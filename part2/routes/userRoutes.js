@@ -38,7 +38,7 @@ router.get('/me', (req, res) => {
   res.json(req.session.user);
 });
 
-// Answer to Q13 - Validate user credentials and create session
+// Answer to Q13 - Validate user credentials and create session in login
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const [rows] = await db.query('SELECT * FROM Users WHERE username = ? AND password_hash = ?', [username, password]);
