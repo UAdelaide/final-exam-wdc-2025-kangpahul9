@@ -9,9 +9,10 @@
 </head>
 <body class="bg-light">
   <div id="app" class="container py-4">
-    <h1 class="mb-4 text-success">Walker Dashboard</h1>
-
-    <!-- Alert messages -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="text-primary m-0">Walker Dashboard</h1>
+  <button type="button" class="btn btn-outline-danger" @click="logout">Log Out</button>
+</div>    <!-- Alert messages -->
     <div v-if="message" class="alert alert-info">{{ message }}</div>
     <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
@@ -55,34 +56,57 @@
           }
         }
 
-        async function applyToWalk(requestId) {
-          try {
-            const res = await fetch(`/api/walks/${requestId}/apply`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ walker_id: user })
-            });
-            const result = await res.json();
+        const userId = ref(null); // Stores the logged-in walker ID
 
-            if (!res.ok) throw new Error(result.error || 'Application failed');
-            message.value = result.message;
-            error.value = '';
-            await loadWalkRequests();
-          } catch (err) {
-            error.value = err.message;
-            message.value = '';
-          }
-        }
+async function getCurrentUser() {
+  try {
+    const res = await fetch('/api/users/me'); // Fetch logged-in user from backend
+    if (!res.ok) throw new Error('Unable to fetch user info');
+    const user = await res.json();
+    userId.value = user.id; // Save user ID to be used in walk application
+  } catch (err) {
+    error.value = 'Failed to retrieve user';
+  }
+}
+async function applyToWalk(requestId) {
+  try {
+    const res = await fetch(`/api/walks/${requestId}/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walker_id: userId.value }) // use session-based ID
+    });
+
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Application failed');
+
+    message.value = result.message;
+    error.value = '';
+    await loadWalkRequests();
+  } catch (err) {
+    error.value = err.message;
+    message.value = '';
+  }
+}
+        // Q14 - Logout function to clear session
+            async function logout() {
+              await fetch('/api/users/logout');
+              window.location.href = '/';
+            }
 
         onMounted(() => {
           loadWalkRequests();
+            getCurrentUser();     // Fetch walker ID on load
+
         });
 
         return {
           walks,
           message,
           error,
-          applyToWalk
+          applyToWalk,
+            userId,
+          getCurrentUser,
+          logout
         };
       }
     }).mount('#app');
